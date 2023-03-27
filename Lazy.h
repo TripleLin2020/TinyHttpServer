@@ -224,9 +224,9 @@ public:
     };
 
     struct TryAwaiter : public AwaiterBase {
-        explicit TryAwaiter(Handle h) : AwaiterBase(h) {}
+        TryAwaiter(Handle h) : AwaiterBase(h) {}
 
-        INLINE Try<T> await_resume() noexcept { return AwaiterBase::awaitResumeTry(); }
+        Try<T> await_resume() noexcept { return AwaiterBase::awaitResumeTry(); }
     };
 
     struct ValueAwaiter : public AwaiterBase {
@@ -292,6 +292,11 @@ public:
     }
 };
 
+/// RescheduleLazy is a Lazy with an executor.
+/// Different from Lazy, when a RescheduleLazy is co_awaited/started/syncAwaited,
+/// the RescheduleLazy wouldn't be executed immediately.
+/// The RescheduleLazy would submit a task to resume the corresponding Lazy task to the executor.
+/// Then the executor would execute the Lazy task later.
 template <typename T = void>
 class [[nodiscard]] RescheduleLazy : public LazyBase<T, true> {
     using Base = LazyBase<T, true>;

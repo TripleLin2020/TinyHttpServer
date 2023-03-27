@@ -1,70 +1,23 @@
 #ifndef TINY_HTTP_SERVER_TRY_H
 #define TINY_HTTP_SERVER_TRY_H
 
-#include "Uint.h"
-#include "Common.h"
-
-#include <exception>
-#include <concepts>
 #include <cassert>
+#include <concepts>
+#include <exception>
 
+#include "Common.h"
+#include "Uint.h"
 
-template<typename T>
+/// Try contains either an instance of T, an exception, or nothing.
+template <typename T>
 class Try {
 private:
-    enum class Contains {
-        VALUE,
-        EXCEPTION,
-        NOTHING
-    };
+    enum class Contains { VALUE, EXCEPTION, NOTHING };
 
 public:
-    Try() : _contains(Contains::NOTHING) {}
+//    Try() : _contains(Contains::NOTHING) {}
 
     ~Try() { destroy(); }
-
-    Try(Try<T>&& other) noexcept: _contains(other._contains) {
-        if (_contains == Contains::VALUE) {
-            new(&_value) T(std::move(other._value));
-        } else if (_contains == Contains::EXCEPTION) {
-            new(&_err) std::exception_ptr(other._err);
-        }
-    }
-
-    template<typename T2 = T>
-
-    Try(std::enable_if_t<std::is_same_v<Uint, T2>, const Try<void>&> other) {
-        // todo
-        if (other.hasError()) {
-            _contains = Contains::EXCEPTION;
-            new(&_err) std::exception_ptr(other._err);
-        } else if (other.available()) {
-            _contains = Contains::VALUE;
-            new(&_value) T();
-        }
-    }
-
-    Try& operator=(Try<T>&& other) noexcept {
-        if (&other == this) return *this;
-        destroy();
-        _contains = other._contains;
-        if (_contains == Contains::VALUE) {
-            new(&_value) T(std::move(other._value));
-        } else if (_contains == Contains::EXCEPTION) {
-            new(&_err) std::exception_ptr(other._err);
-        }
-        return *this;
-    }
-
-    Try& operator=(std::exception_ptr err) {
-        if (_contains == Contains::EXCEPTION && _err == err) {
-            return *this;
-        }
-        destroy();
-        _contains = Contains::EXCEPTION;
-        new(&_err) std::exception_ptr(err);
-        return *this;
-    }
 
     Try(const T& val) : _contains(Contains::VALUE), _value(val) {}
 
@@ -76,16 +29,57 @@ public:
 
     Try& operator=(const Try&) = delete;
 
+    template <typename T2 = T>
+    Try(std::enable_if_t<std::is_same_v<Uint, T2>, const Try<void>&> other) {
+        if (other.hasError()) {
+            _contains = Contains::EXCEPTION;
+            new (&_err) std::exception_ptr(other._err);
+        } else if (other.available()) {
+            _contains = Contains::VALUE;
+            new (&_value) T();
+        }
+    }
+
+    Try(Try<T>&& other) noexcept : _contains(other._contains) {
+        if (_contains == Contains::VALUE) {
+            new (&_value) T(std::move(other._value));
+        } else if (_contains == Contains::EXCEPTION) {
+            new (&_err) std::exception_ptr(other._err);
+        }
+    }
+
+    Try& operator=(Try<T>&& other) noexcept {
+        if (&other == this) return *this;
+        destroy();
+        _contains = other._contains;
+        if (_contains == Contains::VALUE) {
+            new (&_value) T(std::move(other._value));
+        } else if (_contains == Contains::EXCEPTION) {
+            new (&_err) std::exception_ptr(other._err);
+        }
+        return *this;
+    }
+
+    Try& operator=(const std::exception_ptr& err) {
+        if (_contains == Contains::EXCEPTION && _err == err) {
+            return *this;
+        }
+        destroy();
+        _contains = Contains::EXCEPTION;
+        new (&_err) std::exception_ptr(err);
+        return *this;
+    }
+
     [[nodiscard]] bool available() const { return _contains != Contains::NOTHING; }
 
     [[nodiscard]] bool hasError() const { return _contains == Contains::EXCEPTION; }
 
-    T& value()& {
+    T& value() & {
         checkHasTry();
         return _value;
     }
 
-    T&& value()&& {
+    T&& value() && {
         checkHasTry();
         return _value;
     }
@@ -99,7 +93,7 @@ public:
         if (_contains == Contains::EXCEPTION && _err == err) return;
         destroy();
         _contains = Contains::EXCEPTION;
-        new(&_err) std::exception_ptr(err);
+        new (&_err) std::exception_ptr(err);
     }
 
     [[nodiscard]] std::exception_ptr getException() {
@@ -138,7 +132,7 @@ private:
     };
 };
 
-template<>
+template <>
 class Try<void> {
 public:
     Try() = default;
@@ -150,9 +144,9 @@ public:
         return *this;
     }
 
-    Try(Try&& other)  noexcept : _err(std::move(other._err)) {}
+    Try(Try&& other) noexcept : _err(std::move(other._err)) {}
 
-    Try& operator=(Try&& other)  noexcept {
+    Try& operator=(Try&& other) noexcept {
         if (this != &other) std::swap(_err, other._err);
         return *this;
     }
@@ -172,6 +166,4 @@ private:
     std::exception_ptr _err;
 };
 
-// todo
-
-#endif //TINY_HTTP_SERVER_TRY_H
+#endif  // TINY_HTTP_SERVER_TRY_H

@@ -23,11 +23,12 @@ public:
                 continue;
             }
             std::cout << "A HTTP request coming...\n";
+            // Construct connection to handle request and respond.
             startOne(std::move(socket)).via(&_executor).detach();
         }
     }
 
-    Lazy<void> startOne(tcp::socket socket) {
+    static Lazy<void> startOne(tcp::socket socket) {
         Connection con(std::move(socket), "./");
         co_await con.start();
     }
