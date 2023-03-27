@@ -1,4 +1,3 @@
-#include <boost/asio/ip/tcp.hpp>
 #include <iostream>
 #include <thread>
 
@@ -16,14 +15,14 @@ public:
         : _pool(pool), _port(port), _executor(pool.getIoContext()) {}
 
     Lazy<void> start() {
-        tcp::acceptor a(_pool.getIoContext(), tcp::endpoint(tcp::v4(), _port));
+        tcp::acceptor acceptor(_pool.getIoContext(), tcp::endpoint(tcp::v4(), _port));
         while (true) {
             tcp::socket socket(_pool.getIoContext());
-            if (auto err = co_await async_accept(a, socket); err) {
-                std::cout << "Accept failed, error message: " << err.message() << std::endl;
+            if (auto err = co_await asyncAccept(acceptor, socket); err) {
+                std::cerr << "Accept failed, error message: " << err.message() << std::endl;
                 continue;
             }
-            std::cout << "New client coming.\n";
+            std::cout << "A HTTP request coming...\n";
             startOne(std::move(socket)).via(&_executor).detach();
         }
     }

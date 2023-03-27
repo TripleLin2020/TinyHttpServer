@@ -47,7 +47,7 @@ private:
     std::error_code _ec{};
 };
 
-inline Lazy<std::error_code> async_accept(tcp::acceptor& acceptor, tcp::socket& socket) noexcept {
+inline Lazy<std::error_code> asyncAccept(tcp::acceptor& acceptor, tcp::socket& socket) noexcept {
     co_return co_await AcceptorAwaiter(acceptor, socket);
 }
 
