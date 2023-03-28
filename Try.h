@@ -63,6 +63,7 @@ private:
     std::variant<T, std::exception_ptr> _value;
 };
 
+/// Try\<void> only contains an exception.
 template <>
 class Try<void> {
 public:
@@ -91,7 +92,7 @@ public:
     [[nodiscard]] std::exception_ptr getException() { return _err; }
 
 private:
-    std::exception_ptr _err;
+    std::exception_ptr _err = nullptr;
 };
 
 #endif  // TINY_HTTP_SERVER_TRY_H
