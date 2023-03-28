@@ -28,7 +28,6 @@ add_executable(TinyHttpServer Server.cpp
         SyncAwait.h
         Common.h
         Try.h
-        Uint.h
         ViaCoroutine.h
         Traits.h
         Connection.h
@@ -46,7 +45,6 @@ add_executable(TinyHttpClient Client.cpp
         SyncAwait.h
         Common.h
         Try.h
-        Uint.h
         ViaCoroutine.h
         Traits.h
         Connection.h

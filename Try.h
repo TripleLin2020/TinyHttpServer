@@ -1,14 +1,8 @@
 #ifndef TINY_HTTP_SERVER_TRY_H
 #define TINY_HTTP_SERVER_TRY_H
 
-#include <cassert>
-#include <concepts>
 #include <exception>
-#include <utility>
 #include <variant>
-
-#include "Common.h"
-#include "Uint.h"
 
 /// Try contains an instance of T or an exception.
 template <typename T>
@@ -23,15 +17,6 @@ public:
     Try(const Try&) = delete;
 
     Try& operator=(const Try&) = delete;
-
-    template <typename T2 = T>
-    explicit Try(std::enable_if_t<std::is_same_v<Uint, T2>, const Try<void>&> other) {
-        if (other.hasError()) {
-            _value = std::exception_ptr(other._err);
-        } else if (other.available()) {
-            _value = T();
-        }
-    }
 
     Try(Try<T>&& other) noexcept { _value = std::move(other._value); }
 
