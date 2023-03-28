@@ -4,132 +4,81 @@
 #include <cassert>
 #include <concepts>
 #include <exception>
+#include <utility>
+#include <variant>
 
 #include "Common.h"
 #include "Uint.h"
 
-/// Try contains either an instance of T, an exception, or nothing.
+/// Try contains an instance of T or an exception.
 template <typename T>
 class Try {
 private:
     enum class Contains { VALUE, EXCEPTION, NOTHING };
 
 public:
-//    Try() : _contains(Contains::NOTHING) {}
+    explicit Try(const T& val) : _value(val) {}
 
-    ~Try() { destroy(); }
+    explicit Try(T&& val) : _value(std::move(val)) {}
 
-    Try(const T& val) : _contains(Contains::VALUE), _value(val) {}
-
-    Try(T&& val) : _contains(Contains::VALUE), _value(std::move(val)) {}
-
-    Try(std::exception_ptr err) : _contains(Contains::EXCEPTION), _err(err) {}
+    explicit Try(std::exception_ptr err) : _value(std::move(err)) {}
 
     Try(const Try&) = delete;
 
     Try& operator=(const Try&) = delete;
 
     template <typename T2 = T>
-    Try(std::enable_if_t<std::is_same_v<Uint, T2>, const Try<void>&> other) {
+    explicit Try(std::enable_if_t<std::is_same_v<Uint, T2>, const Try<void>&> other) {
         if (other.hasError()) {
-            _contains = Contains::EXCEPTION;
-            new (&_err) std::exception_ptr(other._err);
+            _value = std::exception_ptr(other._err);
         } else if (other.available()) {
-            _contains = Contains::VALUE;
-            new (&_value) T();
+            _value = T();
         }
     }
 
-    Try(Try<T>&& other) noexcept : _contains(other._contains) {
-        if (_contains == Contains::VALUE) {
-            new (&_value) T(std::move(other._value));
-        } else if (_contains == Contains::EXCEPTION) {
-            new (&_err) std::exception_ptr(other._err);
-        }
-    }
+    Try(Try<T>&& other) noexcept { _value = std::move(other._value); }
 
     Try& operator=(Try<T>&& other) noexcept {
         if (&other == this) return *this;
-        destroy();
-        _contains = other._contains;
-        if (_contains == Contains::VALUE) {
-            new (&_value) T(std::move(other._value));
-        } else if (_contains == Contains::EXCEPTION) {
-            new (&_err) std::exception_ptr(other._err);
-        }
+        _value = std::move(other._value);
         return *this;
     }
 
     Try& operator=(const std::exception_ptr& err) {
-        if (_contains == Contains::EXCEPTION && _err == err) {
-            return *this;
-        }
-        destroy();
-        _contains = Contains::EXCEPTION;
-        new (&_err) std::exception_ptr(err);
+        if (_value == err) return *this;
+        _value = std::make_exception_ptr(err);
         return *this;
     }
 
-    [[nodiscard]] bool available() const { return _contains != Contains::NOTHING; }
-
-    [[nodiscard]] bool hasError() const { return _contains == Contains::EXCEPTION; }
+    [[nodiscard]] bool hasError() const {
+        return std::holds_alternative<std::exception_ptr>(_value);
+    }
 
     T& value() & {
-        checkHasTry();
-        return _value;
+        T* v = std::get_if<T>(_value);
+        if (!v) std::rethrow_exception(std::get<std::exception_ptr>(_value));
+        return *v;
     }
 
     T&& value() && {
-        checkHasTry();
-        return _value;
+        T* v = std::get_if<T>(_value);
+        if (!v) std::rethrow_exception(std::get<std::exception_ptr>(_value));
+        return std::move(*v);
     }
 
     const T&& value() const&& {
-        checkHasTry();
-        return std::move(_value);
-    }
-
-    void setException(std::exception_ptr err) {
-        if (_contains == Contains::EXCEPTION && _err == err) return;
-        destroy();
-        _contains = Contains::EXCEPTION;
-        new (&_err) std::exception_ptr(err);
+        T* v = std::get_if<T>(_value);
+        if (!v) std::rethrow_exception(std::get<std::exception_ptr>(_value));
+        return std::move(*v);
     }
 
     [[nodiscard]] std::exception_ptr getException() {
-        logicAssert(_contains == Contains::EXCEPTION, "Try object does not has an error");
-        return _err;
+        logicAssert(hasError(), "Try object does not has an error");
+        return std::get<std::exception_ptr>(_value);
     }
 
 private:
-    INLINE void checkHasTry() const {
-        switch (_contains) {
-            case Contains::VALUE:
-                [[likely]] return;
-            case Contains::EXCEPTION:
-                std::rethrow_exception(_err);
-            case Contains::NOTHING:
-                throw std::logic_error("Try object is empty");
-            default:
-                assert(false);
-        }
-    }
-
-    void destroy() {
-        if (_contains == Contains::VALUE) {
-            _value.~T();
-        } else if (_contains == Contains::EXCEPTION) {
-            _err.~exception_ptr();
-        }
-        _contains = Contains::NOTHING;
-    }
-
-private:
-    Contains _contains = Contains::NOTHING;
-    union {
-        T _value;
-        std::exception_ptr _err;
-    };
+    std::variant<T, std::exception_ptr> _value;
 };
 
 template <>
@@ -140,7 +89,7 @@ public:
     explicit Try(std::exception_ptr err) : _err(std::move(err)) {}
 
     Try& operator=(std::exception_ptr err) {
-        _err = err;
+        _err = std::move(err);
         return *this;
     }
 
@@ -157,8 +106,6 @@ public:
     }
 
     [[nodiscard]] bool hasError() const { return _err.operator bool(); }
-
-    void setException(std::exception_ptr err) { _err = std::move(err); }
 
     [[nodiscard]] std::exception_ptr getException() { return _err; }
 
