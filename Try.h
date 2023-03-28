@@ -13,9 +13,6 @@
 /// Try contains an instance of T or an exception.
 template <typename T>
 class Try {
-private:
-    enum class Contains { VALUE, EXCEPTION, NOTHING };
-
 public:
     explicit Try(const T& val) : _value(val) {}
 
