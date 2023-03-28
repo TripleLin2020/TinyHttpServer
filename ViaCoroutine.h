@@ -26,10 +26,10 @@ public:
             template <class PromiseType>
             auto await_suspend(std::coroutine_handle<PromiseType> h) noexcept {
                 if (auto& pr = h.promise(); pr._ex) {
-                    auto f = [&pr]() { pr._continuation.resume(); };
+                    auto f = [&pr]() { pr._handle.resume(); };
                     pr._ex->checkin(f, _ctx);
                 } else {
-                    pr._continuation.resume();
+                    pr._handle.resume();
                 }
             }
 
@@ -38,7 +38,7 @@ public:
             Executor::Context _ctx;
         };
 
-        std::coroutine_handle<> _continuation;
+        std::coroutine_handle<> _handle;
         Executor* _ex;
         Executor::Context _ctx;
     };
@@ -69,7 +69,7 @@ public:
         assert(_co);
         auto& pr = _co.promise();
         if (pr._ex) pr._ctx = pr._ex->checkout();
-        pr._continuation = continuation;
+        pr._handle = continuation;
         return _co;
     }
 

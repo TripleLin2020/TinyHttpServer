@@ -11,8 +11,6 @@
 #include "Try.h"
 #include "ViaCoroutine.h"
 
-struct Yield {};
-
 template <typename T>
 class Lazy;
 
@@ -20,11 +18,11 @@ class LazyPromiseBase {
 public:
     class FinalAwaiter {
     public:
-        bool await_ready() const noexcept { return false; }
+        static bool await_ready() noexcept { return false; }
 
         template <typename PromiseType>
         auto await_suspend(std::coroutine_handle<PromiseType> h) noexcept {
-            return h.promise()._continuation;
+            return h.promise()._handle;
         }
 
         void await_resume() noexcept {}
@@ -59,14 +57,8 @@ public:
         return coAwait(_executor, std::forward<Awaitable>(awaitable));
     }
 
-    auto await_transform(CurrentExecutor) {
-        // todo
-    }
-
-    auto await_transform(Yield) const { return YieldAwaiter(_executor); }
-
 public:
-    std::coroutine_handle<> _continuation;
+    std::coroutine_handle<> _handle;
     Executor* _executor;
 };
 
@@ -105,7 +97,14 @@ public:
         return std::move(std::get<T>(_value));
     }
 
-    // todo tryResult
+    Try<T> tryResult() noexcept {
+        if (std::holds_alternative<std::exception_ptr>(_value)) [[unlikely]] {
+            return Try<T>(std::get<std::exception_ptr>(_value));
+        } else {
+            assert(std::holds_alternative<T>(_value));
+            return Try<T>(std::move(std::get<T>(_value)));
+        }
+    }
 
 public:
     std::variant<std::monostate, T, std::exception_ptr> _value;
@@ -200,10 +199,10 @@ public:
     struct AwaiterBase : public LazyAwaiterBase<T> {
         using Base = LazyAwaiterBase<T>;
 
-        AwaiterBase(Handle co) : Base(co) {}
+        explicit AwaiterBase(Handle co) : Base(co) {}
 
-        INLINE auto await_suspend(std::coroutine_handle<> co) noexcept {
-            this->_handle.promise()._continuation = co;
+        INLINE auto await_suspend(std::coroutine_handle<> handle) noexcept {
+            this->_handle.promise()._handle = handle;
 
             using R = std::conditional_t<reschedule, void, std::coroutine_handle<>>;
             return awaitSuspendImpl<R>();
@@ -224,7 +223,7 @@ public:
     };
 
     struct TryAwaiter : public AwaiterBase {
-        TryAwaiter(Handle h) : AwaiterBase(h) {}
+        explicit TryAwaiter(Handle h) : AwaiterBase(h) {}
 
         Try<T> await_resume() noexcept { return AwaiterBase::awaitResumeTry(); }
     };
@@ -283,8 +282,6 @@ public:
         this->_co.promise()._executor = ex;
         return RescheduleLazy<T>(std::exchange(this->_co, nullptr));
     }
-
-    // todo setEx
 
     auto coAwait(Executor* ex) {
         this->_co.promise()._executor = ex;

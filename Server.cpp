@@ -28,7 +28,7 @@ public:
         }
     }
 
-    static Lazy<void> startOne(tcp::socket socket) {
+    Lazy<void> startOne(tcp::socket socket) {
         Connection con(std::move(socket), "./");
         co_await con.start();
     }

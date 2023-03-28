@@ -12,8 +12,6 @@ struct ScheduleOptions {
     ScheduleOptions() = default;
 };
 
-struct CurrentExecutor {};
-
 class Executor {
 public:
     using Context = void*;

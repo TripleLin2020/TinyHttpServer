@@ -35,14 +35,14 @@ public:
 
             auto [res, dummy] =
                 _parser.parse(_request, _readBuffer, _readBuffer + bytesTransferred);
-            if (res == RequestParser::good) {
+            if (res == RequestParser::succeed) {
                 _response = handleRequest(_request);
                 co_await asyncWrite(_socket, _response.toBuffers());
                 if (!isKeepAlive()) break;
                 _request = {};
                 _response = {};
                 _parser.reset();
-            } else if (res == RequestParser::bad) {
+            } else if (res == RequestParser::failed) {
                 _response = Response(StatusType::bad_request);
                 co_await asyncWrite(_socket, _response.toBuffers());
                 break;

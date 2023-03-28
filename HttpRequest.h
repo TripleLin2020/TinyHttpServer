@@ -26,11 +26,11 @@ public:
     void reset() { _state = method_start; }
 
     /// Result of parse
-    enum ResultType { good, bad, indeterminate };
+    enum ResultType { succeed, failed, indeterminate };
 
     /// Parse some data.
-    /// 'result_type' is 'good' when a complete request has been parsed.
-    /// It's 'bad' when the data is invalid.
+    /// 'result_type' is 'succeed' when a complete request has been parsed.
+    /// It's 'failed' when the data is invalid.
     /// It's 'indeterminate' when more data is required.
     /// 'InputIterator' indicates how much of the input has been consumed.
     template <typename InputIterator>
@@ -38,7 +38,7 @@ public:
                                                 InputIterator end) {
         while (begin != end) {
             ResultType res = consume(req, *begin++);
-            if (res == good || res == bad) return std::make_tuple(res, begin);
+            if (res == succeed || res == failed) return std::make_tuple(res, begin);
         }
         return std::make_tuple(indeterminate, begin);
     }
@@ -49,7 +49,7 @@ private:
         switch (_state) {
             case method_start:
                 if (!isChar(input) || isCtl(input) || isTspecial(input)) {
-                    return bad;
+                    return failed;
                 } else {
                     _state = method;
                     req.method.push_back(input);
@@ -60,7 +60,7 @@ private:
                     _state = uri;
                     return indeterminate;
                 } else if (!isChar(input) || isCtl(input) || isTspecial(input)) {
-                    return bad;
+                    return failed;
                 } else {
                     req.method.push_back(input);
                     return indeterminate;
@@ -70,7 +70,7 @@ private:
                     _state = http_version_h;
                     return indeterminate;
                 } else if (isCtl(input)) {
-                    return bad;
+                    return failed;
                 } else {
                     req.uri.push_back(input);
                     return indeterminate;
@@ -80,28 +80,28 @@ private:
                     _state = http_version_t_1;
                     return indeterminate;
                 } else {
-                    return bad;
+                    return failed;
                 }
             case http_version_t_1:
                 if (input == 'T') {
                     _state = http_version_t_2;
                     return indeterminate;
                 } else {
-                    return bad;
+                    return failed;
                 }
             case http_version_t_2:
                 if (input == 'T') {
                     _state = http_version_p;
                     return indeterminate;
                 } else {
-                    return bad;
+                    return failed;
                 }
             case http_version_p:
                 if (input == 'P') {
                     _state = http_version_slash;
                     return indeterminate;
                 } else {
-                    return bad;
+                    return failed;
                 }
             case http_version_slash:
                 if (input == '/') {
@@ -110,7 +110,7 @@ private:
                     _state = http_version_major_start;
                     return indeterminate;
                 } else {
-                    return bad;
+                    return failed;
                 }
             case http_version_major_start:
                 if (isDigit(input)) {
@@ -118,7 +118,7 @@ private:
                     _state = http_version_major;
                     return indeterminate;
                 } else {
-                    return bad;
+                    return failed;
                 }
             case http_version_major:
                 if (input == '.') {
@@ -128,7 +128,7 @@ private:
                     req.httpVersionMajor = req.httpVersionMajor * 10 + input - '0';
                     return indeterminate;
                 } else {
-                    return bad;
+                    return failed;
                 }
             case http_version_minor_start:
                 if (isDigit(input)) {
@@ -136,7 +136,7 @@ private:
                     _state = http_version_minor;
                     return indeterminate;
                 } else {
-                    return bad;
+                    return failed;
                 }
             case http_version_minor:
                 if (input == '\r') {
@@ -146,14 +146,14 @@ private:
                     req.httpVersionMinor = req.httpVersionMinor * 10 + input - '0';
                     return indeterminate;
                 } else {
-                    return bad;
+                    return failed;
                 }
             case expecting_newline_1:
                 if (input == '\n') {
                     _state = header_line_start;
                     return indeterminate;
                 } else {
-                    return bad;
+                    return failed;
                 }
             case header_line_start:
                 if (input == '\r') {
@@ -163,7 +163,7 @@ private:
                     _state = header_lws;
                     return indeterminate;
                 } else if (!isChar(input) || isCtl(input) || isTspecial(input)) {
-                    return bad;
+                    return failed;
                 } else {
                     req.headers.push_back(Header());
                     req.headers.back().name.push_back(input);
@@ -177,7 +177,7 @@ private:
                 } else if (input == ' ' || input == '\t') {
                     return indeterminate;
                 } else if (isCtl(input)) {
-                    return bad;
+                    return failed;
                 } else {
                     _state = header_value;
                     req.headers.back().value.push_back(input);
@@ -188,7 +188,7 @@ private:
                     _state = space_before_header_value;
                     return indeterminate;
                 } else if (!isChar(input) || isCtl(input) || isTspecial(input)) {
-                    return bad;
+                    return failed;
                 } else {
                     req.headers.back().name.push_back(input);
                     return indeterminate;
@@ -198,14 +198,14 @@ private:
                     _state = header_value;
                     return indeterminate;
                 } else {
-                    return bad;
+                    return failed;
                 }
             case header_value:
                 if (input == '\r') {
                     _state = expecting_newline_2;
                     return indeterminate;
                 } else if (isCtl(input)) {
-                    return bad;
+                    return failed;
                 } else {
                     req.headers.back().value.push_back(input);
                     return indeterminate;
@@ -215,12 +215,12 @@ private:
                     _state = header_line_start;
                     return indeterminate;
                 } else {
-                    return bad;
+                    return failed;
                 }
             case expecting_newline_3:
-                return (input == '\n') ? good : bad;
+                return (input == '\n') ? succeed : failed;
             default:
-                return bad;
+                return failed;
         }
     }
 

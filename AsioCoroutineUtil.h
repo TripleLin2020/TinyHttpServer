@@ -14,7 +14,7 @@ class AsioExecutor : public Executor {
 public:
     AsioExecutor(asio::io_context& ioContext) : ioContext_(ioContext) {}
 
-    virtual bool schedule(Func func) override {
+    bool schedule(Func func) override {
         asio::post(ioContext_, std::move(func));
         return true;
     }
@@ -117,7 +117,7 @@ public:
     ReadSomeAwaiter(Socket& socket, AsioBuffer&& buffer) : _socket(socket), _buffer(buffer) {}
 
     bool await_ready() { return false; }
-    auto await_suspend(std::coroutine_handle<> handle) {
+    void await_suspend(std::coroutine_handle<> handle) {
         _socket.async_read_some(std::move(_buffer), [this, handle](auto ec, auto size) {
             _ec = ec;
             _size = size;
