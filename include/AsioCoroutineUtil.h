@@ -3,6 +3,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <utility>
 
 #include "Executor.h"
 #include "Lazy.h"
@@ -172,11 +173,11 @@ inline Lazy<std::pair<std::error_code, std::size_t>> asyncWrite(Socket& socket,
 
 class ConnectAwaiter {
 public:
-    ConnectAwaiter(asio::io_context& ioContext, tcp::socket& socket, const std::string& host,
-                   const std::string& port)
-        : _ioContext(ioContext), _socket(socket), _host(host), _port(port) {}
+    ConnectAwaiter(asio::io_context& ioContext, tcp::socket& socket, std::string  host,
+                   std::string  port)
+        : _ioContext(ioContext), _socket(socket), _host(std::move(host)), _port(std::move(port)) {}
 
-    bool await_ready() const noexcept { return false; }
+    bool await_ready() noexcept { return false; }
     void await_suspend(std::coroutine_handle<> handle) {
         tcp::resolver resolver(_ioContext);
         auto endpoints = resolver.resolve(_host, _port);

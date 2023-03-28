@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 project(TinyHttpServer)
 set(CMAKE_CXX_STANDARD 20)
 
+include_directories(include)
+
 set(CXX_FLAGS
 #        -fno-omit-frame-pointer
         -Wall
@@ -20,36 +22,36 @@ set(CXX_FLAGS
 find_package(Boost)
 find_package(Threads)
 
-add_executable(TinyHttpServer Server.cpp
-        IoContextPool.h
-        AsioCoroutineUtil.h
-        Executor.h
-        Lazy.h
-        SyncAwait.h
-        Common.h
-        Try.h
-        ViaCoroutine.h
-        Traits.h
-        Connection.h
-        HttpRequest.h
-        HttpResponse.h
-        DetachedCoroutine.h
-        Condition.h)
+add_executable(TinyHttpServer src/Server.cpp
+        include/IoContextPool.h
+        include/AsioCoroutineUtil.h
+        include/Executor.h
+        include/Lazy.h
+        include/SyncAwait.h
+        include/Common.h
+        include/Try.h
+        include/ViaCoroutine.h
+        include/Traits.h
+        include/Connection.h
+        include/HttpRequest.h
+        include/HttpResponse.h
+        include/DetachedCoroutine.h
+        include/Condition.h)
 target_link_libraries(TinyHttpServer Threads::Threads)
 
-add_executable(TinyHttpClient Client.cpp
-        IoContextPool.h
-        AsioCoroutineUtil.h
-        Executor.h
-        Lazy.h
-        SyncAwait.h
-        Common.h
-        Try.h
-        ViaCoroutine.h
-        Traits.h
-        Connection.h
-        HttpRequest.h
-        HttpResponse.h
-        DetachedCoroutine.h
-        Condition.h)
+add_executable(TinyHttpClient src/Client.cpp
+        include/IoContextPool.h
+        include/AsioCoroutineUtil.h
+        include/Executor.h
+        include/Lazy.h
+        include/SyncAwait.h
+        include/Common.h
+        include/Try.h
+        include/ViaCoroutine.h
+        include/Traits.h
+        include/Connection.h
+        include/HttpRequest.h
+        include/HttpResponse.h
+        include/DetachedCoroutine.h
+        include/Condition.h)
 target_link_libraries(TinyHttpClient Threads::Threads)
