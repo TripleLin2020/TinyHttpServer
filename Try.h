@@ -96,11 +96,10 @@ public:
     Try(Try&& other) noexcept : _err(std::move(other._err)) {}
 
     Try& operator=(Try&& other) noexcept {
-        if (this != &other) std::swap(_err, other._err);
+        if (this != &other) _err = std::exchange(other._err, nullptr);
         return *this;
     }
 
-public:
     void value() {
         if (_err) std::rethrow_exception(_err);
     }
