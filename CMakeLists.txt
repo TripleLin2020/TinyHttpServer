@@ -30,7 +30,6 @@ add_executable(TinyHttpServer src/Server.cpp
         include/SyncAwait.h
         include/Common.h
         include/Try.h
-        include/ViaCoroutine.h
         include/Traits.h
         include/Connection.h
         include/HttpRequest.h
@@ -47,7 +46,6 @@ add_executable(TinyHttpClient src/Client.cpp
         include/SyncAwait.h
         include/Common.h
         include/Try.h
-        include/ViaCoroutine.h
         include/Traits.h
         include/Connection.h
         include/HttpRequest.h

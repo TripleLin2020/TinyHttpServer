@@ -9,7 +9,6 @@
 #include "DetachedCoroutine.h"
 #include "Executor.h"
 #include "Try.h"
-#include "ViaCoroutine.h"
 
 template <typename T>
 class Lazy;
@@ -51,11 +50,6 @@ public:
     std::suspend_always initial_suspend() noexcept { return {}; }
 
     FinalAwaiter final_suspend() noexcept { return {}; }
-
-    template <typename Awaitable>
-    auto await_transform(Awaitable&& awaitable) {
-        return coAwait(_executor, std::forward<Awaitable>(awaitable));
-    }
 
 public:
     std::coroutine_handle<> _handle;

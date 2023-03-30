@@ -80,6 +80,7 @@ private:
         while (is.read(buf, sizeof(buf)).gcount() > 0) {
             response.appendToContent(buf, is.gcount());
         }
+        return response;
     }
 
     static std::string decodeUrl(const std::string& url) {
